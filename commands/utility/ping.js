@@ -19,7 +19,7 @@ module.exports = {
     await interaction.editReply(
       `🏓 Pong! Here are my current stats:\n\n` +
         `**🌐 WebSocket Heartbeat:** \`${websocketPing}ms\`\n` +
-        `**⏱️ Roundtrip Latency:** \`${roundtripLatency}ms`
+        `**⏱️ Roundtrip Latency:** \`${roundtripLatency}ms\``
     );
   },
 };
