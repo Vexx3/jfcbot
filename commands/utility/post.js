@@ -50,7 +50,7 @@ module.exports = {
                 description: "Submit an ad for a fangame.",
               },
               {
-                label: "Featured Submission",
+                label: "Feature Submission",
                 value: "featured_submission",
                 description: "Submit a fangame for featured.",
               }
