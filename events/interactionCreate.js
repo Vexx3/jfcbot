@@ -220,7 +220,6 @@ module.exports = {
         await interaction.showModal(modal);
       } else if (action === "accept_post") {
         const postType = interaction.customId.split("_").slice(2).join("_");
-        console.log(postType);
 
         const channelId =
           postType === "fangame_ad"
