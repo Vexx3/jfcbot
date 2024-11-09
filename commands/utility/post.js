@@ -1,110 +1,136 @@
+const { SlashCommandBuilder } = require("@discordjs/builders");
 const {
-  SlashCommandBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
-  StringSelectMenuBuilder,
 } = require("discord.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("post")
-    .setDescription("Create or edit a post."),
+    .setDescription("Create a new post or edit an existing one"),
   async execute(interaction) {
-    const initialButtons = new ActionRowBuilder().addComponents(
+    const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId("edit_or_repost")
-        .setLabel("Edit/Repost")
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId("create_new_post")
+        .setCustomId("create_post")
         .setLabel("Create New Post")
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId("edit_repost")
+        .setLabel("Edit/Repost")
         .setStyle(ButtonStyle.Secondary)
     );
 
     await interaction.reply({
-      content: "Choose an option:",
-      components: [initialButtons],
+      content: "What would you like to do?",
+      components: [row],
       ephemeral: true,
     });
 
     const filter = (i) => i.user.id === interaction.user.id;
     const collector = interaction.channel.createMessageComponentCollector({
       filter,
-      time: 60000,
+      time: 15000,
     });
 
     collector.on("collect", async (i) => {
-      if (i.customId === "create_new_post") {
-        const postTypeMenu = new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId("post_type_select")
-            .setPlaceholder("Select post type")
-            .addOptions(
-              {
-                label: "Fangame Ad",
-                value: "fangame_ad",
-                description: "Submit an ad for a fangame.",
-              },
-              {
-                label: "Feature Submission",
-                value: "featured_submission",
-                description: "Submit a fangame for featured.",
-              }
-            )
-        );
-
-        await i.update({
-          content: "Select the type of post you want to create:",
-          components: [postTypeMenu],
-          ephemeral: true,
-        });
-      } else if (i.customId === "post_type_select") {
-        const modal = new ModalBuilder()
-          .setCustomId("post_submission_modal")
-          .setTitle("Post Submission")
-          .addComponents(
-            new ActionRowBuilder().addComponents(
-              new TextInputBuilder()
-                .setCustomId("fangame_name")
-                .setLabel("Fangame Name")
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true)
-            ),
-            new ActionRowBuilder().addComponents(
-              new TextInputBuilder()
-                .setCustomId("description")
-                .setLabel("Description")
-                .setStyle(TextInputStyle.Paragraph)
-                .setRequired(true)
-            ),
-            new ActionRowBuilder().addComponents(
-              new TextInputBuilder()
-                .setCustomId("image_url")
-                .setLabel("Image URL")
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true)
-            ),
-            new ActionRowBuilder().addComponents(
-              new TextInputBuilder()
-                .setCustomId("thumbnail_url")
-                .setLabel("Thumbnail URL")
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true)
-            ),
-            new ActionRowBuilder().addComponents(
-              new TextInputBuilder()
-                .setCustomId("game_link")
-                .setLabel("Roblox Game Link")
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true)
-            )
+      collector.stop();
+      if (i.customId === "create_post") {
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId("post_type")
+          .setPlaceholder("Select post type")
+          .addOptions(
+            new StringSelectMenuOptionBuilder()
+              .setLabel("Fangame Ad")
+              .setValue("fangame_ad"),
+            new StringSelectMenuOptionBuilder()
+              .setLabel("Featured Submissions")
+              .setValue("featured_submission")
           );
 
-        await i.showModal(modal);
+        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+
+        await i.update({
+          content: "Select the type of post:",
+          components: [selectRow],
+          ephemeral: true,
+        });
+      }
+    });
+
+    collector.on("end", (_, reason) => {
+      if (reason === "time") {
+        interaction.editReply({
+          content: "You took too long to respond.",
+          components: [],
+          ephemeral: true,
+        });
+      }
+    });
+
+    const selectFilter = (selectInteraction) =>
+      selectInteraction.user.id === interaction.user.id;
+    const selectCollector = interaction.channel.createMessageComponentCollector(
+      {
+        filter: selectFilter,
+        time: 15000,
+      }
+    );
+
+    selectCollector.on("collect", async (selectInteraction) => {
+      if (selectInteraction.customId === "post_type") {
+        const postType = selectInteraction.values[0];
+
+        const modal = new ModalBuilder()
+          .setCustomId("post_modal")
+          .setTitle("Create New Post");
+
+        const fangameName = new TextInputBuilder()
+          .setCustomId("fangame_name")
+          .setLabel("Fangame Name")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true);
+
+        const description = new TextInputBuilder()
+          .setCustomId("description")
+          .setLabel("Description")
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(true);
+
+        const gameLink = new TextInputBuilder()
+          .setCustomId("game_link")
+          .setLabel("Game Link")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true);
+
+        const discordServerLink = new TextInputBuilder()
+          .setCustomId("discord_link")
+          .setLabel("Discord Server Link")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(false);
+
+        const imageUrl = new TextInputBuilder()
+          .setCustomId("image_url")
+          .setLabel("Image URL")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(false);
+
+        const row1 = new ActionRowBuilder().addComponents(fangameName);
+        const row2 = new ActionRowBuilder().addComponents(description);
+        const row3 = new ActionRowBuilder().addComponents(gameLink);
+        const row4 = new ActionRowBuilder().addComponents(discordServerLink);
+        const row5 = new ActionRowBuilder().addComponents(imageUrl);
+
+        modal.addComponents(row1, row2, row3, row4, row5);
+
+        modal.setCustomId(`post_modal_${postType}`);
+
+        await selectInteraction.showModal(modal);
       }
     });
   },

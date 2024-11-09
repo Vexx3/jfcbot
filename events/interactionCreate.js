@@ -4,7 +4,10 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  EmbedBuilder,
 } = require("discord.js");
+
+const tempData = {};
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -79,108 +82,149 @@ module.exports = {
         console.error(error);
       }
     } else if (interaction.isButton()) {
-      // respond to the button
-      if (interaction.customId === "edit_or_repost") {
-        await interaction.reply({
-          content: 'You selected "Edit/Repost".',
-          ephemeral: true,
+      const action = interaction.customId.split("_").slice(0, 2).join("_");
+      const postType = interaction.customId.split("_").slice(2).join("_");
+
+      if (action === "accept_post") {
+        await interaction.deferUpdate();
+
+        await interaction.message.edit({
+          components: [],
         });
-      } else if (interaction.customId === "create_new_post") {
-        await interaction.reply({
-          content: 'You selected "Create New Post". Please choose a post type.',
-          ephemeral: true,
+
+        const userData = tempData[interaction.user.id];
+
+        if (!userData) {
+          return interaction.followUp({
+            content:
+              "There was an error retrieving your submission data. Please ensure you submitted the form properly.",
+            ephemeral: true,
+          });
+        }
+
+        const {
+          fangameName,
+          description,
+          gameLink,
+          discordLink,
+          imageUrl,
+          submitterId,
+        } = userData;
+
+        const channelId =
+          postType === "fangame_ad"
+            ? "896422693669322762"
+            : "896422951975530526";
+
+        const reviewChannel = interaction.client.channels.cache.get(channelId);
+
+        const embed = new EmbedBuilder()
+          .setTitle(fangameName)
+          .setDescription(description)
+          .addFields(
+            { name: "Game Link", value: gameLink },
+            { name: "Discord Server Link", value: discordLink }
+          )
+          .setTimestamp()
+          .setFooter({
+            text: `${interaction.user.username}`,
+            iconURL: interaction.user.displayAvatarURL(),
+          });
+
+        if (imageUrl && imageUrl.startsWith("http")) {
+          embed.setImage(imageUrl);
+        }
+
+        await reviewChannel.send({
+          content: `<@${submitterId}>`,
+          embeds: [embed],
         });
-      } else if (interaction.customId === "submit_for_review") {
-        const reviewChannelId = "1143711190565003364";
-        const reviewChannel = await interaction.client.channels.fetch(
-          reviewChannelId
+      } else if (action === "reject_post") {
+        await interaction.deferUpdate();
+
+        await interaction.message.edit({
+          components: [],
+        });
+
+        try {
+          await interaction.user.send({
+            content:
+              "Your post has been rejected by the moderators. Please ensure it meets the guidelines and has the correct inputs and try again.",
+          });
+        } catch (error) {
+          console.error("Failed to send rejection DM:", error);
+        }
+
+        delete tempData[interaction.user.id];
+      }
+    } else if (interaction.isStringSelectMenu()) {
+      // respond to the select menu
+    } else if (interaction.isModalSubmit()) {
+      const action = interaction.customId.split("_").slice(0, 2).join("_");
+
+      if (action === "post_modal") {
+        const fangameName =
+          interaction.fields.getTextInputValue("fangame_name");
+        const description = interaction.fields.getTextInputValue("description");
+        const gameLink = interaction.fields.getTextInputValue("game_link");
+        const discordLink =
+          interaction.fields.getTextInputValue("discord_link");
+        const imageUrl = interaction.fields.getTextInputValue("image_url");
+
+        const postType = interaction.customId.split("_").slice(2).join("_");
+
+        tempData[interaction.user.id] = {
+          fangameName,
+          description,
+          gameLink,
+          discordLink,
+          imageUrl,
+          submitterId: interaction.user.id,
+        };
+
+        const embed = new EmbedBuilder()
+          .setTitle(fangameName)
+          .setDescription(description)
+          .addFields(
+            { name: "Game Link", value: gameLink },
+            { name: "Discord Server Link", value: discordLink }
+          )
+          .setTimestamp()
+          .setFooter({
+            text: `${interaction.user.username}`,
+            iconURL: interaction.user.displayAvatarURL(),
+          });
+
+        if (
+          imageUrl &&
+          typeof imageUrl === "string" &&
+          imageUrl.startsWith("http")
+        ) {
+          embed.setImage(imageUrl);
+        }
+
+        const reviewChannel = interaction.client.channels.cache.get(
+          "1143711190565003364"
         );
-
-        const { fangameName, description, imageUrl, thumbnailUrl, gameLink } =
-          interaction.message.embeds[0].data.fields;
-
-        const modButtons = new ActionRowBuilder().addComponents(
+        const acceptRejectRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
-            .setCustomId("accept_post")
+            .setCustomId(`accept_post_${postType}`)
             .setLabel("Accept")
             .setStyle(ButtonStyle.Success),
           new ButtonBuilder()
-            .setCustomId("reject_post")
+            .setCustomId(`reject_post_${postType}`)
             .setLabel("Reject")
             .setStyle(ButtonStyle.Danger)
         );
 
         await reviewChannel.send({
-          content: `**New Submission for Review**\n\n**Fangame Name:** ${fangameName.value}\n**Description:** ${description.value}\n**Image URL:** ${imageUrl.value}\n**Thumbnail URL:** ${thumbnailUrl.value}\n**Game Link:** ${gameLink.value}`,
-          components: [modButtons],
+          content: "New Post for Review:",
+          embeds: [embed],
+          components: [acceptRejectRow],
         });
-
-        await interaction.update({
-          content: "Your post has been submitted for review!",
-          components: [],
-          ephemeral: true,
-        });
-      } else if (interaction.customId === "accept_post") {
-        const postType = interaction.message.content.includes("Fangame Ad")
-          ? "fangame_ad"
-          : "featured_submission";
-        const acceptedChannelId =
-          postType === "fangame_ad"
-            ? "896422693669322762"
-            : "896422951975530526";
-        const acceptedChannel = await interaction.client.channels.fetch(
-          acceptedChannelId
-        );
-
-        await acceptedChannel.send({
-          content: interaction.message.content,
-          components: [],
-        });
-
-        await interaction.update({
-          content: "Post has been accepted and published!",
-          components: [],
-        });
-      } else if (interaction.customId === "reject_post") {
-        await interaction.update({
-          content: "Post has been rejected.",
-          components: [],
-        });
-      }
-    } else if (interaction.isStringSelectMenu()) {
-      // respond to the select menu
-      if (interaction.customId === "post_type_select") {
-        const selectedValue = interaction.values[0];
-        await interaction.reply({
-          content: `You selected "${
-            selectedValue === "fangame_ad"
-              ? "Fangame Ad"
-              : "Featured Submission"
-          }". Please provide the details.`,
-          ephemeral: true,
-        });
-      }
-    } else if (interaction.isModalSubmit()) {
-      // respond to the modal submit
-      if (interaction.customId === "post_submission_modal") {
-        const fangameName =
-          interaction.fields.getTextInputValue("fangame_name");
-        const description = interaction.fields.getTextInputValue("description");
-        const imageUrl = interaction.fields.getTextInputValue("image_url");
-        const thumbnailUrl =
-          interaction.fields.getTextInputValue("thumbnail_url");
-        const gameLink = interaction.fields.getTextInputValue("game_link");
-
-        const reviewButtons = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId("submit_for_review")
-            .setLabel("Submit for Review")
-            .setStyle(ButtonStyle.Success)
-        );
 
         await interaction.reply({
-          content: `**Review Your Post Details**\n\n**Fangame Name:** ${fangameName}\n**Description:** ${description}\n**Image URL:** ${imageUrl}\n**Thumbnail URL:** ${thumbnailUrl}\n**Game Link:** ${gameLink}`,
-          components: [reviewButtons],
+          content: "Your post has been submitted for review.",
           ephemeral: true,
         });
       }
