@@ -19,11 +19,7 @@ module.exports = {
       new ButtonBuilder()
         .setCustomId("create_post")
         .setLabel("Create New Post")
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId("edit_repost")
-        .setLabel("Edit/Repost")
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Primary)
     );
 
     await interaction.reply({
@@ -87,7 +83,7 @@ module.exports = {
         const postType = selectInteraction.values[0];
 
         const modal = new ModalBuilder()
-          .setCustomId("post_modal")
+          .setCustomId(`post_modal_${postType}`)
           .setTitle("Create New Post");
 
         const fangameName = new TextInputBuilder()
@@ -127,8 +123,6 @@ module.exports = {
         const row5 = new ActionRowBuilder().addComponents(imageUrl);
 
         modal.addComponents(row1, row2, row3, row4, row5);
-
-        modal.setCustomId(`post_modal_${postType}`);
 
         await selectInteraction.showModal(modal);
       }
