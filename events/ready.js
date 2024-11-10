@@ -15,34 +15,16 @@ module.exports = {
     console.log(`Ready! Logged in as ${client.user.tag}`);
 
     async function fetchFangameOfTheWeek() {
-      const gameList = {
-        12884807858: "Flam's Rooms of Stupidity: Remade",
-        15030142936: "An0nymous' Cool Steeples",
-        4884399625: "The Challenge Towers",
-        10212412556: "The Neat Districts",
-        6915126593: "Voki's Towers of Insanity",
-        7062805182: "Cris' Rooms of Rushed",
-        6985116641: "Vibewater's Redundant Edifices",
-        6640564884: "Cris's Towers of Madness",
-        10822512138: "Bacon's Towers of Categories",
-        10283991824: "Caleb's Soul Crushing Domain",
-        14941540826: "TowerRush!",
-        9619455447: "Acry's Crazy Columns",
-        12451919385: "egg's painful neats",
-        14377924053: "The Classic Tower Archive",
-        7184682048: "Kirk's Towers of Nonsense",
-        15464996550: "Tango's Towers of Cursed",
-        12244318727: "Detective's Towers of Doom",
-        6209129635: "Yoi's Towers of Hell",
-        17655390153: "Kiddie's Towers of Hell: Reborn",
-        18386437234: "lask's towers of dread.",
-        8426160717: "Kosta's Mini Tower Mayhem!",
-        18174616215: "NEATs 4 Anarchists",
-      };
+      const gameList = [
+        12884807858, 15030142936, 4884399625, 10212412556, 6915126593,
+        7062805182, 6985116641, 6640564884, 10822512138, 10283991824,
+        14941540826, 9619455447, 12451919385, 14377924053, 7184682048,
+        15464996550, 12244318727, 6209129635, 17655390153, 18386437234,
+        8426160717, 18174616215,
+      ];
 
-      const gameKeys = Object.keys(gameList);
       const randomGameID =
-        gameKeys[Math.floor(Math.random() * gameKeys.length)];
+        gameList[Math.floor(Math.random() * gameList.length)];
 
       try {
         const universeResponse = await request(
