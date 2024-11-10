@@ -35,19 +35,11 @@ module.exports = {
 
         const universeId = universeData.universeId;
 
-        if (!universeId) {
-          throw new Error("Failed to get universe ID.");
-        }
-
         const gameResponse = await request(
           `https://games.roblox.com/v1/games?universeIds=${universeId}`
         );
         const gameData = await gameResponse.body.json();
         const gameInfo = gameData.data[0];
-
-        if (!gameInfo) {
-          throw new Error("Failed to fetch game info.");
-        }
 
         const iconResponse = await request(
           `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=png&isCircular=false`
@@ -127,7 +119,6 @@ module.exports = {
         };
       } catch (error) {
         console.error(error);
-        throw new Error("There was an error fetching the game info.");
       }
     }
 
