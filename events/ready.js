@@ -48,7 +48,10 @@ module.exports = {
         const universeResponse = await request(
           `https://apis.roblox.com/universes/v1/places/${randomGameID}/universe`
         );
-        const universeId = universeResponse.body.universeId;
+
+        const universeData = await universeResponse.body.json();
+
+        const universeId = universeData.universeId;
 
         if (!universeId) {
           throw new Error("Failed to get universe ID.");
@@ -57,7 +60,8 @@ module.exports = {
         const gameResponse = await request(
           `https://games.roblox.com/v1/games?universeIds=${universeId}`
         );
-        const gameInfo = gameResponse.body.data[0];
+        const gameData = await gameResponse.body.json();
+        const gameInfo = gameData.data[0];
 
         if (!gameInfo) {
           throw new Error("Failed to fetch game info.");
@@ -66,13 +70,15 @@ module.exports = {
         const iconResponse = await request(
           `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=png&isCircular=false`
         );
-        const iconUrl = iconResponse.body.data[0].imageUrl;
+        const iconData = await iconResponse.body.json();
+        const iconUrl = iconData.data[0]?.imageUrl;
 
         const votesResponse = await request(
           `https://games.roblox.com/v1/games/votes?universeIds=${universeId}`
         );
-        const upvotes = votesResponse.body.data[0].upVotes || 0;
-        const downvotes = votesResponse.body.data[0].downVotes || 0;
+        const votesData = await votesResponse.body.json();
+        const upvotes = votesData.data[0]?.upVotes || 0;
+        const downvotes = votesData.data[0]?.downVotes || 0;
 
         const totalVotes = upvotes + downvotes;
         const rating =
@@ -144,7 +150,7 @@ module.exports = {
     }
 
     const cronJob = new CronJob(
-      "0 0 6 * * sun",
+      "0 0 0 * * 7",
       async () => {
         const fangameEmbed = await fetchFangameOfTheWeek();
         const channel = await client.channels.fetch("1304389887063097354");
@@ -152,7 +158,7 @@ module.exports = {
       },
       null,
       true,
-      "UTC"
+      "Asia/Manila"
     );
   },
 };
