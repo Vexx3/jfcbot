@@ -1,12 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { request } = require("undici");
 
-const gameList = [
-  12884807858, 15030142936, 4884399625, 10212412556, 6915126593, 7062805182,
-  6985116641, 6640564884, 10822512138, 10283991824, 14941540826, 9619455447,
-  12451919385, 14377924053, 7184682048, 15464996550, 12244318727, 6209129635,
-  17655390153, 18386437234, 8426160717, 18174616215,
-];
+const { gameList } = require("../../models/utils");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -58,9 +53,7 @@ module.exports = {
 
           const generateHint = (name) => {
             const nameArray = name.split("");
-            const revealCount = Math.ceil(
-              name.replace(/\s/g, "").length * 0.65
-            );
+            const revealCount = Math.ceil(name.replace(/\s/g, "").length * 0.7);
             let revealedPositions = new Set();
 
             while (revealedPositions.size < revealCount) {
@@ -111,7 +104,7 @@ module.exports = {
             ) {
               streak++;
               await response.reply(
-                `Correct! You guessed the fangame name. Streak: ${streak}`
+                `Correct! You guessed the fangame name.\nStreak: ${streak}`
               );
               collector.stop("correct");
               playRound(lives, false);
@@ -119,15 +112,15 @@ module.exports = {
               lives--;
               if (lives > 0) {
                 await response.reply(
-                  `Wrong guess! The game will proceed to the next round.`
+                  `Wrong guess! The correct name was **${cleanGameName}**.\nThe game will proceed to the next round.`
                 );
                 collector.stop("incorrect");
                 playRound(lives, false);
               } else {
                 const streakMessage =
-                  streak > 0 ? ` Your final streak was: ${streak}.` : "";
+                  streak > 0 ? `Your final streak was: ${streak}.` : "";
                 await response.reply(
-                  `Game over! The correct name was **${cleanGameName}**.${streakMessage}`
+                  `Game over! The correct name was **${cleanGameName}**.\n${streakMessage}`
                 );
                 collector.stop("gameOver");
               }
