@@ -15,10 +15,16 @@ module.exports = {
     const instructionEmbed = new EmbedBuilder()
       .setTitle("How to Play")
       .setDescription(
-        `In this game, you'll be given a hint for a random fangame's name. 
-        You need to guess the name of the game correctly within 20 seconds. 
-        You'll have 3 lives, and each incorrect guess will cost you a life. 
-        The game will continue until you either lose all your lives or correctly guess the name!`
+        `How to play:
+    
+        1. **Guess the Name**: You will be given a hint based on the name of a random fangame.
+        2. **3 Lives**: You have 3 lives. Every time you make a wrong guess, you will lose 1 life.
+        3. **Time Limit**: You have 20 seconds to make each guess. Be quick!
+        4. **Correct Answer**: If you guess the name correctly, you earn points and your streak increases!
+        5. **Game Over**: If you run out of lives or time, the game will end, but your points and streak will still be counted.
+        6. **Total Games**: There are a total of **${gameList.length} fangames** available to guess. Can you identify them all?
+    
+        You will see a randomly selected fangame's name, with some characters hidden as clues. Type your guess as quickly as possible to gain points and extend your streak!`
       )
       .setColor("#2C2F33");
 
