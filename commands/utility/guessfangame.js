@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { request } = require("undici");
-
+const userpoints = require("../../models/userpoints");
+const botconfig = require("../../models/botconfig");
 const { gameList } = require("../../models/utils");
 
 module.exports = {
@@ -19,8 +20,7 @@ module.exports = {
         You'll have 3 lives, and each incorrect guess will cost you a life. 
         The game will continue until you either lose all your lives or correctly guess the name!`
       )
-      .setColor("#2C2F33")
-      .setFooter({ text: "Good luck!" });
+      .setColor("#2C2F33");
 
     await interaction.reply({ embeds: [instructionEmbed] });
 
@@ -49,6 +49,7 @@ module.exports = {
               ""
             )
             .replace(/[^\w\s]/g, "")
+            .replace(/\s+/g, " ")
             .trim();
 
           const generateHint = (name) => {
@@ -90,7 +91,6 @@ module.exports = {
           }
 
           const filter = (m) => m.author.id === interaction.user.id;
-
           const collector = interaction.channel.createMessageCollector({
             filter,
             time: 20000,
@@ -103,9 +103,18 @@ module.exports = {
               response.content.toLowerCase() === cleanGameName.toLowerCase()
             ) {
               streak++;
+              const newPoints = await addPoints(interaction.user.id);
+
               await response.reply(
-                `Correct! You guessed the fangame name.\nStreak: ${streak}`
+                `Correct! You guessed the fangame name.\nStreak: ${streak}\nTotal Points: ${newPoints}`
               );
+
+              const leaderboardChannel = interaction.guild.channels.cache.get(
+                "1305353309863022705"
+              );
+              if (leaderboardChannel)
+                await updateLeaderboard(leaderboardChannel);
+
               collector.stop("correct");
               playRound(lives, false);
             } else {
@@ -129,9 +138,9 @@ module.exports = {
 
           collector.on("end", async (_, reason) => {
             if (reason === "time" && lives > 0) {
-              const streakMessage = streak > 0 ? ` Streak: ${streak}.` : "";
+              const streakMessage = streak > 0 ? `Streak: ${streak}.` : "";
               await interaction.followUp({
-                content: `${interaction.user}, you ran out of time! The correct name was **${cleanGameName}**. Please try again next time.${streakMessage}`,
+                content: `${interaction.user}, you ran out of time! The correct name was **${cleanGameName}**. Please try again next time.\n${streakMessage}`,
               });
             }
           });
@@ -155,3 +164,67 @@ module.exports = {
     }, 3000);
   },
 };
+
+async function addPoints(userId, points = 1) {
+  const user = await userpoints.findOneAndUpdate(
+    { userId },
+    { $inc: { points } },
+    { new: true, upsert: true }
+  );
+  return user.points;
+}
+
+async function updateLeaderboard(channel) {
+  const topUsers = await userpoints
+    .find()
+    .sort({ points: -1 })
+    .limit(100)
+    .exec();
+
+  const lastUpdated = Math.floor(Date.now() / 1000);
+
+  const leaderboardEmbed = new EmbedBuilder()
+    .setTitle("Guess Fangame Name Leaderboard")
+    .setDescription(
+      topUsers
+        .map(
+          (user, index) =>
+            `${index + 1}. <@${user.userId}> - ${user.points} points`
+        )
+        .join("\n")
+    )
+    .setColor("#FFD700");
+
+  let config = await botconfig.findOne();
+  if (!config) {
+    config = new botconfig();
+    await config.save();
+  }
+
+  if (config.leaderboardMessageId) {
+    try {
+      const leaderboardMessage = await channel.messages.fetch(
+        config.leaderboardMessageId
+      );
+      await leaderboardMessage.edit({
+        content: `**Last updated:** <t:${lastUpdated}:f>`,
+        embeds: [leaderboardEmbed],
+      });
+    } catch (error) {
+      console.log("Leaderboard message not found. Sending a new message.");
+      const newMessage = await channel.send({
+        content: `**Last updated:** <t:${lastUpdated}:f>`,
+        embeds: [leaderboardEmbed],
+      });
+      config.leaderboardMessageId = newMessage.id;
+      await config.save();
+    }
+  } else {
+    const newMessage = await channel.send({
+      content: `**Last updated:** <t:${lastUpdated}:f>`,
+      embeds: [leaderboardEmbed],
+    });
+    config.leaderboardMessageId = newMessage.id;
+    await config.save();
+  }
+}
