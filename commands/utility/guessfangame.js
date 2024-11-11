@@ -97,7 +97,7 @@ module.exports = {
             await interaction.followUp({ embeds: [gameEmbed] });
           }
 
-          const filter = (m) => m.author.id === interaction.user.id;
+          const filter = (m) => m.author.id === interaction.author.id;
           const collector = interaction.channel.createMessageCollector({
             filter,
             time: 20000,
