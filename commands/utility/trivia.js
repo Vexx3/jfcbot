@@ -6,20 +6,31 @@ const {
   ButtonStyle,
 } = require("discord.js");
 const { request } = require("undici");
+const { startGame, endGame } = require("../../models/utils");
 
 module.exports = {
+  cooldown: 2,
   data: new SlashCommandBuilder()
     .setName("trivia")
     .setDescription("Starts a trivia game with a multiple choice question."),
 
   async execute(interaction) {
+    const userId = interaction.user.id;
     const apiUrl = "https://opentdb.com/api.php?amount=1";
+
+    if (!startGame(userId, "trivia")) {
+      return interaction.reply({
+        content: "Hold up there, You're already playing this game!",
+        ephemeral: true,
+      });
+    }
 
     try {
       const response = await request(apiUrl);
       const data = await response.body.json();
 
       if (data.response_code !== 0) {
+        endGame(userId);
         return interaction.reply({
           content: "Error fetching trivia question.",
           ephemeral: true,
@@ -94,11 +105,12 @@ module.exports = {
         await i.update({
           content:
             selectedAnswer === correctAnswer
-              ? "Correct!"
-              : `Incorrect! The correct answer was: ${correctAnswer}`,
+              ? "Nailed it!"
+              : `Oof, wrong! The correct answer was **${correctAnswer}**. Better luck next time!`,
           components: [updatedRow],
         });
 
+        endGame(userId);
         collector.stop();
       });
 
@@ -115,13 +127,15 @@ module.exports = {
           );
 
           interaction.editReply({
-            content: `Time's up! The correct answer was: ${correctAnswer}`,
+            content: `>>> Guess you didn't wanna play trivia after all?`,
             components: [updatedRow],
           });
+          endGame(userId);
         }
       });
     } catch (error) {
       console.error(error);
+      endGame(userId);
       return interaction.reply({
         content: "An error occurred while fetching the trivia question.",
         ephemeral: true,

@@ -1,7 +1,33 @@
 const { EmbedBuilder } = require("discord.js");
 const botconfig = require("./botconfig");
-const userpoints = require("./userpoints")
+const userpoints = require("./userpoints");
 
+const activeGames = new Map();
+
+/**
+ * Starts a game for a user, preventing multiple active games.
+ * @param {string} userId - Discord user ID.
+ * @param {string} gameType - The type of game (e.g., 'guessfangamename', 'trivia').
+ * @returns {boolean} - Returns true if the game is successfully started, false if already active.
+ */
+function startGame(userId, gameType) {
+  if (activeGames.has(userId)) return false;
+  activeGames.set(userId, gameType);
+  return true;
+}
+
+/**
+ * Ends a game for a user.
+ * @param {string} userId - Discord user ID.
+ */
+function endGame(userId) {
+  activeGames.delete(userId);
+}
+
+/**
+ * Updates the leaderboard for Guess Fangame Name game.
+ * @param {object} channel - The Discord channel to post the leaderboard.
+ */
 async function updateLeaderboard(channel) {
   const topUsers = await userpoints
     .find()
@@ -59,4 +85,6 @@ async function updateLeaderboard(channel) {
 
 module.exports = {
   updateLeaderboard,
+  startGame,
+  endGame,
 };

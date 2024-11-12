@@ -1,38 +1,44 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { request } = require("undici");
 const userpoints = require("../../models/userpoints");
-const botconfig = require("../../models/botconfig");
 const gameList = require("../../models/gameList");
-const { updateLeaderboard } = require("../../models/utils");
+const { updateLeaderboard, startGame, endGame } = require("../../models/utils");
 
 module.exports = {
+  cooldown: 2,
   data: new SlashCommandBuilder()
     .setName("guessfangamename")
     .setDescription("Guess the name of a random fangame!"),
 
   async execute(interaction) {
+    const userId = interaction.user.id;
+
+    if (!startGame(userId, "guessfangamename")) {
+      return interaction.reply({
+        content: "Hold up there, You're already playing this game!",
+        ephemeral: true,
+      });
+    }
+
     let streak = 0;
+    let collector;
 
     const instructionEmbed = new EmbedBuilder()
       .setTitle("How to Play")
       .setDescription(
-        `How to play:
-    
-        1. **Guess the Name**: You will be given a hint based on the name of a random fangame.
-        2. **3 Lives**: You have 3 lives. Every time you make a wrong guess, you will lose 1 life.
-        3. **Time Limit**: You have 20 seconds to make each guess. Be quick!
-        4. **Correct Answer**: If you guess the name correctly, you earn points and your streak increases!
-        5. **Game Over**: If you run out of lives or time, the game will end, but your points and streak will still be counted.
-        6. **Total Games**: There are a total of **${gameList.length} fangames** available to guess. Can you identify them all?
-    
-        You will see a randomly selected fangame's name, with some characters hidden as clues. Type your guess as quickly as possible to gain points and extend your streak!`
+        `**Guess the Name**: You'll get a clue based on a fangame's name. Make a guess!
+        **3 Lives**: 3 wrong guesses, and you're out.
+        **20 Seconds**: That’s all the time you get per guess.
+        **Score**: Get it right, earn points, and up your streak!
+        
+        **Pro Tip**: There are **${gameList.length} fangames**.`
       )
       .setColor("#2C2F33");
 
     await interaction.reply({ embeds: [instructionEmbed] });
 
     setTimeout(() => {
-      async function playRound(lives, isFirstRound = false) {
+      async function playRound(lives) {
         const randomGameID =
           gameList[Math.floor(Math.random() * gameList.length)];
 
@@ -91,16 +97,13 @@ module.exports = {
             .setFooter({ text: "Type your answer in the chat." })
             .setColor("#2C2F33");
 
-          if (isFirstRound) {
-            await interaction.followUp({ embeds: [gameEmbed] });
-          } else {
-            await interaction.followUp({ embeds: [gameEmbed] });
-          }
+          await interaction.followUp({ embeds: [gameEmbed] });
 
-          const filter = (m) => m.author.id === interaction.author.id;
-          const collector = interaction.channel.createMessageCollector({
+          const filter = (m) => m.author.id === interaction.user.id;
+          collector = interaction.channel.createMessageCollector({
             filter,
             time: 20000,
+            max: 1,
           });
 
           collector.on("collect", async (response) => {
@@ -113,7 +116,7 @@ module.exports = {
               const newPoints = await addPoints(interaction.user.id);
 
               await response.reply(
-                `Correct! You guessed the fangame name.\nStreak: ${streak}\nTotal Points: ${newPoints}`
+                `That's correct!\nStreak: ${streak}\nTotal Points: ${newPoints}`
               );
 
               const leaderboardChannel = interaction.guild.channels.cache.get(
@@ -123,22 +126,23 @@ module.exports = {
                 await updateLeaderboard(leaderboardChannel);
 
               collector.stop("correct");
-              playRound(lives, false);
+              playRound(lives);
             } else {
               lives--;
               if (lives > 0) {
                 await response.reply(
-                  `Wrong guess! The correct name was **${cleanGameName}**.\nThe game will proceed to the next round.`
+                  `Oops, that’s not it! The correct answer was **${cleanGameName}**.\nLet's keep going!`
                 );
                 collector.stop("incorrect");
-                playRound(lives, false);
+                playRound(lives);
               } else {
                 const streakMessage =
-                  streak > 0 ? `Your final streak was: ${streak}.` : "";
+                  streak > 0 ? `Final streak: ${streak}.` : "";
                 await response.reply(
-                  `Game over! The correct name was **${cleanGameName}**.\n${streakMessage}`
+                  `>>> Game over! You gave it a solid shot.\nThe correct answer was **${cleanGameName}**.\n${streakMessage} Better luck next time!`
                 );
                 collector.stop("gameOver");
+                endGame(userId);
               }
             }
           });
@@ -147,27 +151,23 @@ module.exports = {
             if (reason === "time" && lives > 0) {
               const streakMessage = streak > 0 ? `Streak: ${streak}.` : "";
               await interaction.followUp({
-                content: `${interaction.user}, you ran out of time! The correct name was **${cleanGameName}**. Please try again next time.\n${streakMessage}`,
+                content: `>>> ${interaction.user}, too slow! Please try again next time.\n${streakMessage}`,
               });
+              endGame(userId);
             }
           });
         } catch (error) {
           console.error(error);
-          if (isFirstRound) {
-            await interaction.reply({
-              content: "There was an error fetching the game info.",
-              ephemeral: true,
-            });
-          } else {
-            await interaction.followUp({
-              content: "There was an error fetching the game info.",
-              ephemeral: true,
-            });
-          }
+          await interaction.followUp({
+            content:
+              "There was an error fetching the game info. Continuing the game...",
+            ephemeral: true,
+          });
+          playRound(lives);
         }
       }
 
-      playRound(3, true);
+      playRound(3);
     }, 3000);
   },
 };
