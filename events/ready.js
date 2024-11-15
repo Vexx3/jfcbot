@@ -123,7 +123,7 @@ module.exports = {
     }
 
     const cronJob = new CronJob(
-      "0 0 0 * * 7",
+      "0 0 0 * * 6",
       async () => {
         const fangameEmbed = await fetchFangameOfTheWeek();
         const channel = await client.channels.fetch("1304389887063097354");
