@@ -88,7 +88,7 @@ module.exports = {
               inline: true,
             },
             {
-              name: "👎 Upvotes",
+              name: "👍 Upvotes",
               value: upvotes.toLocaleString(),
               inline: true,
             },
