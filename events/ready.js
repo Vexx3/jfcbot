@@ -28,7 +28,7 @@ module.exports = {
 
       try {
         const universeResponse = await request(
-          `https://apis.roblox.com/universes/v1/places/${randomGameID}/universe`
+          `https://apis.roproxy.com/universes/v1/places/${randomGameID}/universe`
         );
 
         const universeData = await universeResponse.body.json();
@@ -36,19 +36,19 @@ module.exports = {
         const universeId = universeData.universeId;
 
         const gameResponse = await request(
-          `https://games.roblox.com/v1/games?universeIds=${universeId}`
+          `https://games.roproxy.com/v1/games?universeIds=${universeId}`
         );
         const gameData = await gameResponse.body.json();
         const gameInfo = gameData.data[0];
 
         const iconResponse = await request(
-          `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=png&isCircular=false`
+          `https://thumbnails.roproxy.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=png&isCircular=false`
         );
         const iconData = await iconResponse.body.json();
         const iconUrl = iconData.data[0]?.imageUrl;
 
         const votesResponse = await request(
-          `https://games.roblox.com/v1/games/votes?universeIds=${universeId}`
+          `https://games.roproxy.com/v1/games/votes?universeIds=${universeId}`
         );
         const votesData = await votesResponse.body.json();
         const upvotes = votesData.data[0]?.upVotes || 0;

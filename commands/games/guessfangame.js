@@ -44,13 +44,13 @@ module.exports = {
 
         try {
           const universeResponse = await request(
-            `https://apis.roblox.com/universes/v1/places/${randomGameID}/universe`
+            `https://apis.roproxy.com/universes/v1/places/${randomGameID}/universe`
           );
           const universeData = await universeResponse.body.json();
           const universeId = universeData.universeId;
 
           const gameResponse = await request(
-            `https://games.roblox.com/v1/games?universeIds=${universeId}`
+            `https://games.roproxy.com/v1/games?universeIds=${universeId}`
           );
           const gameData = await gameResponse.body.json();
           const gameInfo = gameData.data[0];
@@ -65,9 +65,9 @@ module.exports = {
             .replace(/\s+/g, " ")
             .trim();
 
-          const generateHint = (name) => {
+          const generateHint = (name, difficulty) => {
             const nameArray = name.split("");
-            const revealCount = Math.ceil(name.replace(/\s/g, "").length * 0.7);
+            const revealCount = Math.ceil(name.replace(/\s/g, "").length * difficulty);
             let revealedPositions = new Set();
 
             while (revealedPositions.size < revealCount) {
@@ -79,12 +79,13 @@ module.exports = {
 
             return nameArray
               .map((char, index) =>
-                char === " " ? " " : revealedPositions.has(index) ? char : "\\*"
+                char === " " ? " " : revealedPositions.has(index) ? char : "#"
               )
               .join("");
           };
 
-          const hint = generateHint(cleanGameName);
+          const difficulty = 0.7 - (streak * 0.05);
+          const hint = generateHint(cleanGameName, Math.max(difficulty, 0.3));
 
           let livesEmojis = "";
           for (let i = 0; i < 3; i++) {
@@ -113,7 +114,9 @@ module.exports = {
               response.content.toLowerCase() === cleanGameName.toLowerCase()
             ) {
               streak++;
-              const newPoints = await addPoints(interaction.user.id);
+              const timeTaken = (Date.now() - response.createdTimestamp) / 1000;
+              const bonusPoints = timeTaken <= 10 ? 2 : 1;
+              const newPoints = await addPoints(interaction.user.id, bonusPoints);
 
               await response.reply(
                 `That's correct!\nStreak: ${streak}\nTotal Points: ${newPoints}`
@@ -129,6 +132,7 @@ module.exports = {
               playRound(lives);
             } else {
               lives--;
+              streak = 0;
               if (lives > 0) {
                 await response.reply(
                   `Oops, that’s not it! The correct answer was **${cleanGameName}**.\nLet's keep going!`
