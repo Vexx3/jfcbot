@@ -353,7 +353,7 @@ module.exports = {
               }
             )
             .setFooter({
-              text: `${language} - ${duration}ms`,
+              text: `Language: ${language} | Execution Time: ${duration}ms`,
             })
             .setColor(stderr ? "Red" : "Green");
 
