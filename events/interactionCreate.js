@@ -337,12 +337,6 @@ module.exports = {
 
           const responseData = await response.body.json();
 
-          if (!responseData.ok) {
-            return interaction.editReply({
-              content: `Error executing code. Please check your language or code snippet.`,
-            });
-          }
-
           const { stdout, stderr, duration } = responseData;
 
           const embed = new EmbedBuilder()
@@ -351,22 +345,17 @@ module.exports = {
               { name: "Input", value: `\`\`\`${language}\n${code}\n\`\`\`` },
               {
                 name: "Output",
-                value: stdout
+                value: stderr
+                  ? `\`\`\`\n${stderr}\n\`\`\``
+                  : stdout
                   ? `\`\`\`\n${stdout}\n\`\`\``
                   : "No output was generated.",
               }
             )
             .setFooter({
-              text: `Language: ${language} | Execution Time: ${duration}ms`,
+              text: `${language} - ${duration}ms`,
             })
             .setColor(stderr ? "Red" : "Green");
-
-          if (stderr) {
-            embed.addFields({
-              name: "Error",
-              value: `\`\`\`\n${stderr}\n\`\`\``,
-            });
-          }
 
           await interaction.editReply({ embeds: [embed] });
         } catch (err) {
