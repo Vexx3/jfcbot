@@ -350,7 +350,7 @@ module.exports = {
           const embed = new EmbedBuilder()
             .setTitle("Code Execution")
             .setDescription(
-              `**Input**\n${formattedCode}\n\n` + `**Output**\n${output}`
+              `**Input**\n${formattedCode}\n` + `**Output**\n${output}`
             )
             .setFooter({
               text: `Language: ${language} | Execution Time: ${duration}ms`,
