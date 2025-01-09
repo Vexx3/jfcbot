@@ -348,7 +348,6 @@ module.exports = {
             : "No output was generated.";
 
           const embed = new EmbedBuilder()
-            .setTitle("Code Execution")
             .setDescription(
               `**Input**\n${formattedCode}\n` + `**Output**\n${output}`
             )
