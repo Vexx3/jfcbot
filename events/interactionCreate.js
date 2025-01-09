@@ -9,6 +9,7 @@ const {
   TextInputBuilder,
   TextInputStyle,
 } = require("discord.js");
+const { request } = require("undici");
 
 const tempData = {};
 
@@ -309,6 +310,73 @@ module.exports = {
           components: [previewRow],
           ephemeral: true,
         });
+      } else if (interaction.customId === "runCodeModal") {
+        const language = interaction.fields
+          .getTextInputValue("language")
+          .toLowerCase();
+        const code = interaction.fields.getTextInputValue("code");
+
+        await interaction.deferReply();
+
+        try {
+          const requestBody = {
+            sandbox: language,
+            command: "run",
+            files: {
+              "": code,
+            },
+          };
+
+          const response = await request("https://api.codapi.org/v1/exec", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          const responseData = await response.body.json();
+
+          if (!responseData.ok) {
+            return interaction.editReply({
+              content: `Error executing code. Please check your language or code snippet.`,
+            });
+          }
+
+          const { stdout, stderr, duration } = responseData;
+
+          const embed = new EmbedBuilder()
+            .setTitle("Code Execution")
+            .addFields(
+              { name: "Input", value: `\`\`\`${language}\n${code}\n\`\`\`` },
+              {
+                name: "Output",
+                value: stdout
+                  ? `\`\`\`\n${stdout}\n\`\`\``
+                  : "No output was generated.",
+              }
+            )
+            .setFooter({
+              text: `Language: ${language} | Execution Time: ${duration}ms`,
+            })
+            .setColor(stderr ? "Red" : "Green");
+
+          if (stderr) {
+            embed.addFields({
+              name: "Error",
+              value: `\`\`\`\n${stderr}\n\`\`\``,
+            });
+          }
+
+          await interaction.editReply({ embeds: [embed] });
+        } catch (err) {
+          console.error(err);
+
+          await interaction.editReply({
+            content:
+              "An unexpected error occurred while trying to execute your code. Please try again later.",
+          });
+        }
       }
     }
   },
