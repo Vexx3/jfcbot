@@ -8,6 +8,7 @@ const {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  codeBlock,
 } = require("discord.js");
 const { request } = require("undici");
 
@@ -339,18 +340,17 @@ module.exports = {
 
           const { stdout, stderr, duration } = responseData;
 
+          const formattedCode = codeBlock(language, code);
+          const output = stderr
+            ? codeBlock(stderr)
+            : stdout
+            ? codeBlock(stdout)
+            : "No output was generated.";
+
           const embed = new EmbedBuilder()
             .setTitle("Code Execution")
-            .addFields(
-              { name: "Input", value: `\`\`\`${language}\n${code}\n\`\`\`` },
-              {
-                name: "Output",
-                value: stderr
-                  ? `\`\`\`\n${stderr}\n\`\`\``
-                  : stdout
-                  ? `\`\`\`\n${stdout}\n\`\`\``
-                  : "No output was generated.",
-              }
+            .setDescription(
+              `**Input**\n${formattedCode}\n\n` + `**Output**\n${output}`
             )
             .setFooter({
               text: `Language: ${language} | Execution Time: ${duration}ms`,
