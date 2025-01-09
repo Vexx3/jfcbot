@@ -24,8 +24,7 @@ module.exports = {
 
     const codeInput = new TextInputBuilder()
       .setCustomId("code")
-      .setLabel("Code Snippet")
-      .setPlaceholder("Write your code here...")
+      .setLabel("Code")
       .setStyle(TextInputStyle.Paragraph)
       .setRequired(true);
 
