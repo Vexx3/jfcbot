@@ -18,7 +18,7 @@ module.exports = {
     const languageInput = new TextInputBuilder()
       .setCustomId("language")
       .setLabel("Language")
-      .setPlaceholder("e.g., javascript, python, c++")
+      .setPlaceholder("e.g., javascript, python, c#")
       .setStyle(TextInputStyle.Short)
       .setRequired(true);
 
